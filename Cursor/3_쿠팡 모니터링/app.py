@@ -77,6 +77,20 @@ def api_server_info():
     return jsonify(_local_ips_and_port())
 
 
+@app.route("/api/health")
+def api_health():
+    """진단용: 엑셀 파일 존재 여부, BASE 경로 확인."""
+    paths = _get_paths()
+    p1 = BASE / (paths.get("payment_excel") or "쿠팡 일간 결제액 모니터링.xlsx")
+    p2 = BASE / (paths.get("wau_excel") or "쿠팡 WAU 모니터링.xlsx")
+    return jsonify({
+        "ok": True,
+        "payment_excel_exists": p1.exists(),
+        "wau_excel_exists": p2.exists(),
+        "base_dir": str(BASE),
+    })
+
+
 @app.route("/")
 def index():
     return render_template("dashboard.html")
