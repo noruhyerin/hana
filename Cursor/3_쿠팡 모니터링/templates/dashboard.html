@@ -47,8 +47,8 @@
     <a href="/api/excel/download/payment" class="btn" download>결제액 엑셀</a>
     <a href="/api/excel/download/wau" class="btn" download>WAU 엑셀</a>
     <span style="margin-left: 12px;"><strong>엑셀 업로드:</strong></span>
-    <label><input type="file" id="upload-payment" accept=".xlsx" style="margin-right: 4px;">결제액</label>
-    <label><input type="file" id="upload-wau" accept=".xlsx" style="margin-right: 4px;">WAU</label>
+    <label><input type="file" id="upload-payment" accept=".xlsx" style="margin-right: 4px;">결제액 엑셀</label>
+    <label><input type="file" id="upload-wau" accept=".xlsx" style="margin-right: 4px;">WAU 엑셀</label>
     <button type="button" class="btn" id="upload-btn">업로드</button>
     <span id="upload-status" class="upload-status"></span>
   </div>
@@ -138,7 +138,7 @@
 
   function renderPaymentCards(data) {
     if (!data || data.length === 0) {
-      document.getElementById('payment-cards').innerHTML = '<span class="loading">데이터 없음</span>';
+      document.getElementById('payment-cards').innerHTML = '';
       return;
     }
     const last = data[data.length - 1];
@@ -250,7 +250,7 @@
     const dataMax = values.length ? Math.max(...values) : 3000;
     const padding = Math.max(50, (dataMax - dataMin) * 0.1) || 50;
     const yMin = Math.floor(dataMin - padding);
-    const yMax = Math.ceil(Math.max(dataMax + padding, 3200));
+    const yMax = Math.ceil(Math.max(dataMax + padding, 3000));
     chartWau = new Chart(ctx, {
       type: 'bar',
       data: {
@@ -357,8 +357,8 @@
       renderNews(newsRes.data, newsRes.message);
     } catch (e) {
       console.error(e);
-      document.getElementById('payment-cards').innerHTML = '<span class="loading">데이터 없음</span>';
-      document.getElementById('news-tbody').innerHTML = '<tr><td colspan="2" class="loading">데이터 없음</td></tr>';
+      document.getElementById('payment-cards').innerHTML = '';
+      document.getElementById('news-tbody').innerHTML = '<tr><td colspan="2" class="loading"></td></tr>';
     }
   }
   load();

@@ -15,16 +15,14 @@ INCLUDE_KEYWORDS = ("혜택", "멤버십", "와우", "변경", "개편", "조정
 
 
 def fetch_naver_news(query: str, client_id: str, client_secret: str, display: int = 20, sort: str = "date"):
+    """네이버 뉴스 검색. 성공 시 items 리스트, 실패 시 예외 발생(원인 파악용)."""
     if not client_id or not client_secret:
         return []
     headers = {"X-Naver-Client-Id": client_id, "X-Naver-Client-Secret": client_secret}
     params = {"query": query, "display": min(display, 100), "sort": sort}
-    try:
-        r = requests.get(NAVER_NEWS_URL, headers=headers, params=params, timeout=10)
-        r.raise_for_status()
-        return r.json().get("items", [])
-    except Exception:
-        return []
+    r = requests.get(NAVER_NEWS_URL, headers=headers, params=params, timeout=15)
+    r.raise_for_status()
+    return r.json().get("items", [])
 
 
 def collect_coupang_news(config: dict, cache_dir: Path, year_week: str):
@@ -118,6 +116,8 @@ def collect_coupang_news_recent_30d(config: dict, cache_dir: Path):
     cid = naver.get("client_id") or os.getenv("NAVER_CLIENT_ID")
     csec = naver.get("client_secret") or os.getenv("NAVER_CLIENT_SECRET")
     cache_dir = Path(cache_dir)
+    if os.environ.get("VERCEL"):
+        cache_dir = Path("/tmp/news_cache")
     cache_dir.mkdir(parents=True, exist_ok=True)
     cache_file = cache_dir / RECENT30D_CACHE_FILE
 
@@ -134,11 +134,17 @@ def collect_coupang_news_recent_30d(config: dict, cache_dir: Path):
         except Exception:
             pass
 
-    items = []
-    for q in ["쿠팡 혜택 변경", "와우 멤버십", "쿠팡 와우 혜택", "쿠팡 멤버십 변경", "쿠팡 회원 혜택"]:
-        items.extend(fetch_naver_news(q, cid, csec, display=50, sort="date"))
+    raw_items = []
+    try:
+        for q in ["쿠팡 혜택 변경", "와우 멤버십", "쿠팡 와우 혜택", "쿠팡 멤버십 변경", "쿠팡 회원 혜택"]:
+            raw_items.extend(fetch_naver_news(q, cid, csec, display=50, sort="date"))
+    except Exception as e:
+        return {"items": [], "message": "뉴스 API 오류: " + str(e)}
 
-    items = _filter_benefit_membership_only(items)
+    items = _filter_benefit_membership_only(raw_items)
+    use_fallback = len(items) == 0
+    if use_fallback:
+        items = raw_items  # 필터 결과 0건이면 필터 없이 최근 뉴스 사용
 
     cutoff = (datetime.now() - timedelta(days=30)).date()
     seen_url = set()
@@ -165,6 +171,8 @@ def collect_coupang_news_recent_30d(config: dict, cache_dir: Path):
         unique.append({"title": t, "link": link or x.get("link"), "description": (x.get("description") or "").strip(), "pubDate": x.get("pubDate")})
 
     result = {"collected_at": datetime.now().isoformat(), "items": unique[:50]}
+    if use_fallback and result["items"]:
+        result["message"] = "혜택·와우 멤버십 관련 기사가 없어 최근 쿠팡 뉴스를 표시합니다."
     try:
         with open(cache_file, "w", encoding="utf-8") as f:
             json.dump(result, f, ensure_ascii=False, indent=2)
