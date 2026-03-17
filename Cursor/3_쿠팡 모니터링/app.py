@@ -146,6 +146,7 @@ def api_wau_weekly():
             "week_start": r["week_start"],
             "week_label": r.get("week_label", ""),
             "active_users_만": r["active_users_만"],
+            "wau_wow": r.get("wau_wow"),
         })
     return jsonify({"data": rows})
 
