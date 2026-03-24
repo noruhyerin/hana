@@ -35,7 +35,7 @@ NEWS_SEARCH_QUERIES = [
     "쿠팡 개편",
 ]
 
-# Positive: 실적·지표 / 멤버십·배송 / 반응·시장 / 기술·미래 (하나라도 있으면 후보)
+# Positive: 너무 넓은 단어(시장·배송·투자 단독 등)는 제외해 오탐을 줄임
 _POSITIVE_METRICS = (
     "실적",
     "매출",
@@ -44,7 +44,6 @@ _POSITIVE_METRICS = (
     "이용자",
     "MAU",
     "WAU",
-    "경영",
     "분기",
     "분기실적",
     "GMV",
@@ -54,25 +53,21 @@ _POSITIVE_MEMBERSHIP = (
     "멤버십",
     "와우",
     "무료배송",
-    "배송",
     "로켓배송",
     "배송비",
+    "배송정책",
     "개편",
     "조정",
     "회원혜택",
-    "회원",
-    "배송정책",
 )
 _POSITIVE_REACTION = (
     "소비자",
-    "시장",
     "시민단체",
     "논란",
     "반발",
     "비판",
     "환영",
     "여론",
-    "반응",
 )
 _POSITIVE_TECH = (
     "AI",
@@ -80,9 +75,6 @@ _POSITIVE_TECH = (
     "자동화",
     "물류",
     "로봇",
-    "신사업",
-    "투자",
-    "기술",
 )
 
 # Negative: 제목에 경쟁사가 두드러지는데 쿠팡이 제목에 없을 때
@@ -175,6 +167,18 @@ def _has_coupang_brand_context(body_plain: str) -> bool:
     return False
 
 
+def _title_clearly_about_coupang(title_plain: str) -> bool:
+    """제목에 쿠팡 사업이 드러나야 함(요약에만 쿠팡 있는 이슈·동아리 기사 등 배제)."""
+    t = title_plain or ""
+    if "쿠팡" in t:
+        return True
+    if "로켓배송" in t or "로켓와우" in t:
+        return True
+    if "와우" in t and any(x in t for x in ("멤버", "멤버십", "혜택", "회원", "배송", "로켓")):
+        return True
+    return False
+
+
 def _matches_positive_signal(body_plain: str) -> bool:
     """Positive OR: 실적·멤버십/배송·반응·기술 중 하나."""
     text = body_plain or ""
@@ -191,13 +195,15 @@ def _matches_positive_signal(body_plain: str) -> bool:
 
 
 def _is_meaningful_coupang_news(raw_title: str, raw_description: str) -> bool:
-    """유의미 뉴스 선정: Negative 제외 → 쿠팡 연관 → Positive OR."""
+    """유의미 뉴스 선정: Negative 제외 → 제목에 쿠팡 맥락 → 본문 브랜드 → Positive OR."""
     title = _strip_html(raw_title or "")
     desc = _strip_html(raw_description or "")
     full = title + " " + desc
     if not full.strip():
         return False
     if _should_exclude_news(title, full):
+        return False
+    if not _title_clearly_about_coupang(title):
         return False
     if not _has_coupang_brand_context(full):
         return False
