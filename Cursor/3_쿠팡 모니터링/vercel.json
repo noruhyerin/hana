@@ -7,11 +7,7 @@
   ],
   "functions": {
     "api/index.py": {
-      "includeFiles": [
-        "cp_payment.xlsx",
-        "cp_wau.xlsx",
-        "config.yaml"
-      ]
+      "includeFiles": "{cp_payment.xlsx,cp_wau.xlsx,config.yaml}"
     }
   }
 }
