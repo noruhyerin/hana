@@ -84,6 +84,7 @@
   <script>
 (function() {
   const API = '/api';
+  const fetchOpts = { cache: 'no-store' };
   let paymentDaily = [];
   let paymentWeekly = [];
   let wauWeekly = [];
@@ -106,22 +107,22 @@
   }
 
   async function fetchPaymentDaily(days = 84) {
-    const r = await fetch(API + '/payment/daily?days=' + days);
+    const r = await fetch(API + '/payment/daily?days=' + days, fetchOpts);
     const j = await r.json();
     return j.data || [];
   }
   async function fetchPaymentWeekly() {
-    const r = await fetch(API + '/payment/weekly');
+    const r = await fetch(API + '/payment/weekly', fetchOpts);
     const j = await r.json();
     return j.data || [];
   }
   async function fetchWauWeekly() {
-    const r = await fetch(API + '/wau/weekly');
+    const r = await fetch(API + '/wau/weekly', fetchOpts);
     const j = await r.json();
     return j.data || [];
   }
   async function fetchNews() {
-    const r = await fetch(API + '/news');
+    const r = await fetch(API + '/news', fetchOpts);
     const j = await r.json();
     return { data: j.data || [], message: j.message || '' };
   }

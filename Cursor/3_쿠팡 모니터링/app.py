@@ -41,6 +41,16 @@ app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 db.init_app(app)
 
 
+@app.after_request
+def _no_cache_dashboard_and_api(resp):
+    """Vercel/브라우저가 HTML·JSON을 오래 캐시하면 엑셀 갱신이 화면에 안 보일 수 있음."""
+    p = request.path
+    if p.startswith("/api") or p == "/":
+        resp.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+        resp.headers["Pragma"] = "no-cache"
+    return resp
+
+
 def _get_paths():
     config = load_config()
     return get_paths(config)
@@ -75,6 +85,32 @@ def _local_ips_and_port():
 def api_server_info():
     """접속 주소 안내용: port, ips, urls."""
     return jsonify(_local_ips_and_port())
+
+
+@app.route("/api/data-source-info")
+def api_data_source_info():
+    """배포본이 읽는 엑셀의 크기·수정시각·파싱된 마지막 일자. 반영 여부 확인용."""
+    from datetime import datetime, timezone
+
+    paths = _get_paths()
+
+    def _file_meta(key: str, default_name: str):
+        fname = paths.get(key) or default_name
+        path = BASE / fname
+        out = {"file": fname, "exists": path.exists()}
+        if path.exists():
+            st = path.stat()
+            out["size_bytes"] = st.st_size
+            out["mtime_utc"] = datetime.fromtimestamp(st.st_mtime, tz=timezone.utc).isoformat()
+        return out
+
+    df = load_payment_daily_df(BASE, paths.get("payment_excel"), days=500)
+    last_date = str(df.iloc[-1]["date"]) if len(df) else None
+    return jsonify({
+        "payment_xlsx": _file_meta("payment_excel", "cp_payment.xlsx"),
+        "wau_xlsx": _file_meta("wau_excel", "cp_wau.xlsx"),
+        "payment_last_row_date": last_date,
+    })
 
 
 @app.route("/")
