@@ -85,6 +85,11 @@
 (function() {
   const API = '/api';
   const fetchOpts = { cache: 'no-store' };
+  /** CDN/프록시가 GET API를 URL 단위로 캐시하는 경우 방지 */
+  function apiUrl(path) {
+    const sep = path.indexOf('?') >= 0 ? '&' : '?';
+    return API + path + sep + '_=' + Date.now();
+  }
   let paymentDaily = [];
   let paymentWeekly = [];
   let wauWeekly = [];
@@ -107,22 +112,22 @@
   }
 
   async function fetchPaymentDaily(days = 84) {
-    const r = await fetch(API + '/payment/daily?days=' + days, fetchOpts);
+    const r = await fetch(apiUrl('/payment/daily?days=' + days), fetchOpts);
     const j = await r.json();
     return j.data || [];
   }
   async function fetchPaymentWeekly() {
-    const r = await fetch(API + '/payment/weekly', fetchOpts);
+    const r = await fetch(apiUrl('/payment/weekly'), fetchOpts);
     const j = await r.json();
     return j.data || [];
   }
   async function fetchWauWeekly() {
-    const r = await fetch(API + '/wau/weekly', fetchOpts);
+    const r = await fetch(apiUrl('/wau/weekly'), fetchOpts);
     const j = await r.json();
     return j.data || [];
   }
   async function fetchNews() {
-    const r = await fetch(API + '/news', fetchOpts);
+    const r = await fetch(apiUrl('/news'), fetchOpts);
     const j = await r.json();
     return { data: j.data || [], message: j.message || '' };
   }
